@@ -192,11 +192,6 @@ RACES = {
 
 ALIAS_TO_RACE = {alias.lower(): key for key, cfg in RACES.items() for alias in cfg["aliases"]}
 
-SYNONYMES_AFFICHAGE = {
-    "Réserve alimentaire": ["Silo alimentaire"],
-    "Tour d’habitation": ["Gratte-ciel"],
-}
-
 
 def setup_console() -> None:
     if hasattr(sys.stdout, "reconfigure"):
@@ -399,7 +394,7 @@ def render_delta_table(race_key: str, slot: int, current: Sequence[int]) -> str:
         [((name, role), d) for (_icon, name, role), d in zip(cfg["buildings"], delta) if d > 0],
         key=lambda x: (role_order.get(x[0][1], 9), -x[1], x[0][0]),
     )
-    lines = [f"{ANSI_BOLD}Comparaison DELTA{ANSI_RESET}", table, "Priorité (plus gros manque d’abord):"]
+    lines = [f"{ANSI_BOLD}Comparaison DELTA{ANSI_RESET}", table, "Priorité (pop/food → T1→T2 → T2→T3 → bonus, puis manque):"]
     if not prio:
         lines.append("✅ Aucun manque, objectif atteint.")
     else:
@@ -529,6 +524,7 @@ def interactive_flow() -> int:
     print()
     print(output_blocks[-1])
 
+    current_levels: List[int] | None = None
     compare = ask("\nComparer avec mes niveaux actuels ? (o/N): ").lower()
     if compare in {"o", "oui", "y", "yes"}:
         cfg = RACES[race_key]
@@ -545,6 +541,7 @@ def interactive_flow() -> int:
                     break
                 except ValueError:
                     print("Valeur invalide, entier >= 0 attendu.")
+        current_levels = current
         print()
         delta_txt = render_delta_table(race_key, slot, current)
         output_blocks.append(delta_txt)
@@ -553,21 +550,25 @@ def interactive_flow() -> int:
     auto_slot = ask("\nTrouver mon slot max depuis mes niveaux actuels ? (o/N): ").lower()
     if auto_slot in {"o", "oui", "y", "yes"}:
         cfg = RACES[race_key]
-        current = []
-        print("Entre tes niveaux actuels:")
-        for _, name, _role in cfg["buildings"]:
-            while True:
-                try:
-                    x = ask(f" - {name}: ")
-                    val = int(x)
-                    if val < 0:
-                        raise ValueError
-                    current.append(val)
-                    break
-                except ValueError:
-                    print("Valeur invalide, entier >= 0 attendu.")
+        if current_levels is None:
+            current = []
+            print("Entre tes niveaux actuels:")
+            for _, name, _role in cfg["buildings"]:
+                while True:
+                    try:
+                        x = ask(f" - {name}: ")
+                        val = int(x)
+                        if val < 0:
+                            raise ValueError
+                        current.append(val)
+                        break
+                    except ValueError:
+                        print("Valeur invalide, entier >= 0 attendu.")
+            current_levels = current
+        else:
+            print("Réutilisation des niveaux saisis pour DELTA.")
         print()
-        auto_txt = render_auto_slot_result(race_key, current)
+        auto_txt = render_auto_slot_result(race_key, current_levels)
         output_blocks.append(auto_txt)
         print(auto_txt)
 
