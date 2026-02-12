@@ -729,6 +729,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         for e in errors:
             print("-", e)
         return 1
+    run_web(args.host, int(port), open_browser, theme)
+    return 0
 
     if args.cli:
         return run_cli()
