@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 
 TITLE = "🔥 Outil FDV by HARDCORE — v0.9 🔥"
 VERSION = "0.9"
+DEFAULT_THEME = "neon"
 
 POP_THRESHOLDS = [
     200000,
@@ -422,7 +423,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px so
 <div id='k' class='k'><div class='kbox card'><input id='kInput' placeholder='slot 18 | race mecas | theme minimal | export txt | toggle emoji'></div></div>
 <script>
 const TABS=[['min','MIN'],['delta','DELTA'],['full','FULL'],['auto','AUTO-SLOT'],['settings','SETTINGS'],['help','HELP']];
-const state={race:'humains',slot:11,tier:2,current:[],races:[],tab:'min',emoji:true,anim:true,theme:'neon',density:'comfortable',fontScale:100,accentAuto:true,lastProfile:''};
+const state={race:'humains',slot:11,tier:2,current:[],races:[],tab:'min',emoji:true,anim:true,theme:'__DEFAULT_THEME__',density:'comfortable',fontScale:100,accentAuto:true,lastProfile:''};
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 async function api(u,o){const r=await fetch(u,o);if(!r.ok) throw new Error(await r.text()); return r.json();}
@@ -592,7 +593,7 @@ class FdvHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             if path == "/":
-                self._html(HTML_PAGE.replace("__TITLE__", TITLE))
+                self._html(HTML_PAGE.replace("__TITLE__", TITLE).replace("__DEFAULT_THEME__", DEFAULT_THEME))
             elif path == "/health":
                 self._json({"ok": True, "version": VERSION, "time": int(time.time())})
             elif path == "/version":
@@ -712,6 +713,8 @@ def run_web(host: str, port: int, no_open: bool) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    global DEFAULT_THEME
+
     parser = argparse.ArgumentParser(description=TITLE)
     parser.add_argument("--cli", action="store_true", help="Mode texte minimal")
     parser.add_argument("--port", type=int, default=None, help="Port HTTP")
@@ -738,6 +741,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.port is None:
         port, auto_open, _ = ask_start(8787)
         return run_web(args.host, port, not auto_open)
+    return run_web(args.host, args.port, args.no_open)
+
+    if args.cli:
+        return run_cli()
+
+    if args.port is None:
+        port, auto_open, theme = ask_start(8787)
+        DEFAULT_THEME = theme
+        return run_web(args.host, port, not auto_open)
+
+    DEFAULT_THEME = "neon"
     return run_web(args.host, args.port, args.no_open)
 
 
